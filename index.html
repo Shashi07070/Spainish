@@ -1,0 +1,879 @@
+<title>Quince Días</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: one column. Azulejo tile strip, header, plan card, 15-tile course map, then the day workbench (Learn / Method / Quiz) or the review deck. */
+:root{
+  --bg:#F2F4F9; --surface:#FFFFFF; --ink:#12182B; --muted:#5B6479; --line:#D9DEEA;
+  --cobalt:#2447B5; --cobalt-soft:#E3E9F8; --on-cobalt:#FFFFFF;
+  --saffron:#E3A008; --saffron-soft:#FBF0D3; --on-saffron:#1B1400;
+  --good:#1F8A5B; --good-soft:#DDF1E7; --bad:#C23A3A; --bad-soft:#F8E1E1;
+  --display:"Bricolage Grotesque",ui-rounded,"Segoe UI",system-ui,sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C1224; --surface:#151D36; --ink:#EEF1FA; --muted:#9AA5C2; --line:#27325A;
+    --cobalt:#7C9BFF; --cobalt-soft:#1C2850; --on-cobalt:#0C1224;
+    --saffron:#F2B73A; --saffron-soft:#3A2F14;
+    --good:#4FCB93; --good-soft:#15382B; --bad:#FF8484; --bad-soft:#3D1D22;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C1224; --surface:#151D36; --ink:#EEF1FA; --muted:#9AA5C2; --line:#27325A;
+  --cobalt:#7C9BFF; --cobalt-soft:#1C2850; --on-cobalt:#0C1224;
+  --saffron:#F2B73A; --saffron-soft:#3A2F14;
+  --good:#4FCB93; --good-soft:#15382B; --bad:#FF8484; --bad-soft:#3D1D22;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body);
+  padding-block:0 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px))}
+button{font-family:inherit}
+:focus-visible{outline:3px solid var(--saffron);outline-offset:2px}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:20px;padding-block:16px 8px}
+.tilestrip{height:12px;border-radius:4px;
+  background:
+    radial-gradient(circle at center,var(--saffron) 0 1.8px,transparent 2.3px),
+    conic-gradient(from 45deg,var(--cobalt) 0 25%,var(--cobalt-soft) 0 50%,var(--cobalt) 0 75%,var(--cobalt-soft) 0);
+  background-size:12px 12px}
+.top{display:flex;flex-direction:column;gap:12px}
+.top h1{font:800 clamp(2.1rem,8vw,3rem)/1 var(--display);letter-spacing:-.02em;margin:0}
+.top p{color:var(--muted);margin:0;max-width:50ch}
+.stats{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);padding:5px 12px;border-radius:999px;font-size:.85rem;color:var(--muted)}
+.chip b{color:var(--ink);font-variant-numeric:tabular-nums}
+.plan{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--cobalt);color:var(--on-cobalt);border-radius:14px;padding:18px}
+.plan>div{min-width:0;flex:1 1 240px}
+.plan .eyebrow{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;opacity:.85}
+.plan h2{font:700 1.35rem/1.2 var(--display);margin:4px 0}
+.plan p{margin:0;font-size:.95rem;opacity:.92}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--cobalt-soft);padding:4px;border-radius:12px}
+.seg button{border:0;background:transparent;color:var(--muted);padding:10px;border-radius:9px;font:600 .95rem var(--body);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.badge{display:inline-block;background:var(--saffron);color:var(--on-saffron);border-radius:999px;font-size:.75rem;padding:1px 8px;margin-left:6px;font-variant-numeric:tabular-nums}
+.map{display:flex;flex-direction:column;gap:10px}
+.mapgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.node{aspect-ratio:1;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:0;min-width:0}
+.node b{font:800 1.1rem var(--display)}
+.node small{font:600 .65rem var(--body);color:var(--muted);letter-spacing:.06em}
+.node.done{background:var(--cobalt);border-color:var(--cobalt);color:var(--on-cobalt)}
+.node.done small{color:inherit;opacity:.9}
+.node[aria-current="true"]{outline:3px solid var(--saffron);outline-offset:2px}
+.bar{height:6px;background:var(--cobalt-soft);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--saffron);border-radius:3px}
+.levels{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.8rem;color:var(--muted)}
+.day{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;scroll-margin-top:12px}
+.dayhead{padding:18px 18px 14px}
+.lvl{display:inline-block;font:700 .72rem var(--body);letter-spacing:.1em;border:1px solid var(--cobalt);color:var(--cobalt);border-radius:6px;padding:2px 8px}
+.dayhead h2{font:800 1.6rem/1.15 var(--display);margin:8px 0 4px;text-wrap:balance}
+.goal{color:var(--muted);margin:0}
+.pips{display:flex;gap:6px 16px;margin-top:12px;font-size:.8rem;color:var(--muted);flex-wrap:wrap}
+.pip{display:flex;align-items:center;gap:6px}
+.pip i{width:10px;height:10px;border-radius:3px;background:var(--line)}
+.pip.on i{background:var(--good)}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.tabs button{background:transparent;border:0;border-bottom:3px solid transparent;padding:12px 4px;font:600 .95rem var(--body);color:var(--muted);cursor:pointer}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--saffron)}
+.pane{padding:18px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.pane h3{font:700 1.05rem var(--display);margin:0 0 8px}
+.list{list-style:none;margin:0;padding:0}
+.row{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row .txt{flex:1;min-width:0}
+.es{font:700 1.1rem var(--display)}
+.en{color:var(--muted);display:block}
+.pic{display:block;margin-top:4px;font-size:.88rem;color:var(--cobalt)}
+.pron{display:block;margin-top:2px;font:700 .95rem/1.3 var(--body);color:var(--cobalt);letter-spacing:.03em}
+.stage .pron{font-size:1.1rem}
+.sayrow{display:flex;gap:6px;flex:none}
+.say.slow{width:auto;padding:0 8px;font:700 .72rem var(--body)}
+.key{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px 16px}
+.key summary{cursor:pointer;font-weight:700}
+.key dl{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin:12px 0 0}
+.key dt{font-weight:700;color:var(--cobalt)}
+.key dd{margin:0;color:var(--muted);min-width:0}
+.say{flex:none;width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--cobalt-soft);color:var(--cobalt);cursor:pointer;display:grid;place-items:center;padding:0}
+.gram{background:var(--saffron-soft);border-radius:12px;padding:14px 16px;min-width:0}
+.gram p{margin:0 0 10px}
+.tblw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+td{font-weight:600}
+.btn{border:0;border-radius:10px;padding:12px 18px;font:700 1rem var(--body);cursor:pointer;background:var(--cobalt);color:var(--on-cobalt)}
+.btn.alt{background:var(--saffron);color:var(--on-saffron)}
+.btn.ghost{background:transparent;color:var(--cobalt);border:1.5px solid var(--cobalt)}
+.btn.sm{padding:8px 14px;font-size:.9rem}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.tech{border-radius:12px;background:var(--cobalt-soft);padding:14px 16px}
+.tech h3{margin:2px 0 6px;font-size:1.25rem}
+.tech p{margin:0}
+.src{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.step{display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:12px;border-radius:10px;cursor:pointer;font:500 1rem/1.4 var(--body)}
+.box{flex:none;width:22px;height:22px;border-radius:6px;border:2px solid var(--cobalt);display:grid;place-items:center;font-size:.8rem;color:#fff;margin-top:1px}
+.step.on .box{background:var(--good);border-color:var(--good)}
+.step.on>span:last-child{color:var(--muted)}
+.stage{border-radius:14px;background:var(--cobalt-soft);padding:22px 16px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center}
+.stage .big{font:800 clamp(1.5rem,6vw,2rem)/1.2 var(--display);text-wrap:balance}
+.stage .ans{color:var(--cobalt)}
+.stage.live .big{animation:beat 1.6s ease-in-out infinite}
+@keyframes beat{50%{transform:scale(1.04)}}
+@media (prefers-reduced-motion: reduce){.stage.live .big{animation:none}}
+.qcard{border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.qprompt{font:700 1.2rem/1.3 var(--display);margin:0}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{text-align:left;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:12px 14px;font:500 1rem var(--body);cursor:pointer}
+.opt:hover:not([disabled]){border-color:var(--cobalt)}
+.opt.right{border-color:var(--good);background:var(--good-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.opt[disabled]{cursor:default}
+input.txt{width:100%;font:500 1.05rem var(--body);padding:12px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+.fb{padding:10px 12px;border-radius:10px;font-size:.95rem;margin:0}
+.fb.ok{background:var(--good-soft)}
+.fb.no{background:var(--bad-soft)}
+.boxes{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;align-items:end;height:72px}
+.boxes div{background:var(--cobalt);border-radius:4px 4px 0 0;min-height:4px}
+.boxlab{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;font-size:.72rem;color:var(--muted);text-align:center}
+.foot{color:var(--muted);font-size:.85rem;display:flex;flex-direction:column;gap:6px}
+.foot p{margin:0}
+</style>
+
+<div id="app"></div>
+
+<script>
+/* Course data. v = [Spanish, English, picture-it hint], p = [Spanish, English]. */
+const DAYS=[
+{d:1,lvl:"A1",t:"Saludos",en:"Greetings",goal:"Greet people, introduce yourself and stay polite in a first meeting.",
+ v:[["hola","hello","Wave and sing “oh-la-la” at a friend across the street."],
+    ["buenos días","good morning","A sunrise over a big nose (nos) sniffing fresh bread."],
+    ["buenas tardes","good afternoon","“Tardes” sounds like “tardy”: you arrive tardy after lunch."],
+    ["buenas noches","good evening / good night","“Noches” sounds like “no chase”: no more running around, time for bed."],
+    ["adiós","goodbye","Add a door (a-dee-ós) and shut it behind you as you leave."],
+    ["hasta luego","see you later","“Luego” sounds like “lay-go”: lay it down and go, back later."],
+    ["por favor","please","Sounds like “for favour”: you are asking for a favour."],
+    ["gracias","thank you","Think “gracious”: a gracious host receiving thanks."],
+    ["de nada","you're welcome","Literally “of nothing”: it was nothing, no trouble."],
+    ["perdón","sorry / excuse me","Sounds like “pardon”: bow and say pardon me."]],
+ p:[["Me llamo Ana.","My name is Ana."],["¿Cómo estás?","How are you?"],["Estoy bien, gracias.","I'm fine, thank you."],["Mucho gusto.","Nice to meet you."]],
+ g:{t:"Upside-down marks",b:"Spanish opens questions with ¿ and exclamations with ¡, then closes them as English does. Tú is the friendly “you” (¿Cómo estás?). Usted is the formal “you” (¿Cómo está usted?).",
+    q:{p:"Which mark opens a Spanish question?",o:["¿","?","¡","…"],a:0,e:"A question opens with ¿ and closes with ?."}},
+ m:{n:"Imitatio",who:"Quintilian · Rome, c. 95 CE",why:"Roman students learned to speak by copying model speakers aloud, matching rhythm and tone before worrying about theory.",tool:"player",ptype:"p",
+    steps:["Press start and listen to each phrase twice without speaking.","Say it aloud half a beat behind the voice, copying its rhythm and melody.","Say it once more with no audio, then swap in your own name or a new word."]}},
+
+{d:2,lvl:"A1",t:"Números y sonidos",en:"Numbers and sounds",goal:"Count from one to ten and learn the five vowel sounds that never change.",
+ v:[["uno","one (1)","Echoes “unity”: one single thing."],
+    ["dos","two (2)","Echoes “duo”."],
+    ["tres","three (3)","Echoes “trio”."],
+    ["cuatro","four (4)","Echoes “quartet”."],
+    ["cinco","five (5)","The word has five letters: c-i-n-c-o."],
+    ["seis","six (6)","Echoes “sextet”."],
+    ["siete","seven (7)","Echoes “septet”."],
+    ["ocho","eight (8)","Echoes “octopus”: eight arms."],
+    ["nueve","nine (9)","Echoes “novena”: nine days of prayer."],
+    ["diez","ten (10)","Echoes “decade”."]],
+ p:[["Dos cafés, por favor.","Two coffees, please."],["Somos cuatro.","There are four of us."],["Son las tres.","It's three o'clock."],["Tengo diez euros.","I have ten euros."]],
+ g:{t:"Five pure vowels",b:"Spanish has five vowel sounds and they never change: a (father), e (bet), i (machine), o (more), u (rule). The letter h is silent, j is a rough h, ll sounds like y, and ñ sounds like “ny”.",
+    q:{p:"How do you pronounce the h in “hola”?",o:["It is silent","Like English h","Like j","Like ch"],a:0,e:"H is always silent in Spanish."}},
+ m:{n:"Vedic chanting",who:"Oral tradition · India, 3,000+ years",why:"Reciters kept huge texts exact by chanting to a steady beat and by repeating items in different orders until each one sat firmly in place.",tool:"player",ptype:"v",
+    steps:["Chant one to ten on a steady beat, one number per beat, a little louder on the stressed syllable.","Chant ten down to one. Reciters trained the same material in different orders to lock each item in place.","Chant only the even numbers, then only the odd ones, without pausing."]}},
+
+{d:3,lvl:"A1",t:"La familia",en:"Family",goal:"Name your relatives and talk about who is in your family.",
+ v:[["la madre","the mother","Your mother in a giant apron, arms open."],
+    ["el padre","the father","Your father holding a huge notepad, like a “pad”."],
+    ["el hermano","the brother","Your brother waving one giant hand (mano means hand)."],
+    ["la hermana","the sister","Your sister copying the same giant-hand wave."],
+    ["el hijo","the son","A little boy yelling “EE-ho!” like a cheerleader."],
+    ["la hija","the daughter","A little girl yelling “EE-ha!” and shaking pom-poms."],
+    ["el abuelo","the grandfather","Grandpa snoring “a-BWAY-lo” under a blanket."],
+    ["la abuela","the grandmother","Grandma knitting: same sound as abuelo, but ending in -a for “she”."],
+    ["el amigo","the friend","Your friend shouting “a me, go!” to rush you out of the door."],
+    ["la familia","the family","The whole family squeezed into one photo frame."]],
+ p:[["Esta es mi familia.","This is my family."],["Tengo dos hermanos.","I have two brothers or siblings."],["Mi madre es doctora.","My mother is a doctor."],["¿Tienes hermanos?","Do you have siblings?"]],
+ g:{t:"Gender and plurals",b:"Nouns are masculine (el) or feminine (la). Add -s for plurals: el hermano becomes los hermanos. A mixed group takes the masculine plural, so los hermanos can mean “brothers and sisters”.",
+    q:{p:"How do you say “the sisters”?",o:["las hermanas","los hermanas","la hermanas","las hermano"],a:0,e:"Feminine plural: las + hermanas."}},
+ m:{n:"Method of loci",who:"Simonides, Cicero · Greece and Rome, from c. 500 BCE",why:"Legend says the poet Simonides named every crushed banquet guest by recalling where each one sat. Orators later stored speeches by placing ideas along a familiar route.",tool:"palace",
+    stations:["Front door","Hallway","Sofa","Kitchen table","Fridge","Bedroom door","Bed","Window","Bathroom","Garden"],
+    steps:["Picture a home you know well and walk through it. The ten stops below are a model route.","Put one word at each stop as a loud, strange image. Make it move and make a sound.","Walk the route in your head saying each Spanish word aloud, then walk it backwards."]}},
+
+{d:4,lvl:"A1",t:"Ser, estar, tener",en:"The three core verbs",goal:"Say who you are, how you feel and what you have.",
+ v:[["ser","to be (who or what)","Ser is what you ARE at heart."],
+    ["estar","to be (mood or place)","Estar is how you STAND: your mood and location."],
+    ["tener","to have","Think “tenant”: a tenant has a flat."],
+    ["feliz","happy","Echoes “felicity”."],
+    ["cansado","tired","“Can't, sad-o”: too tired to do anything."],
+    ["alto","tall","Echoes “altitude”."],
+    ["aquí","here","“A-KEY”: the key is right here."],
+    ["allí","there","Point far away and shout “a-YEE!”"],
+    ["muy","very","A cow going “mooey”: very loud."],
+    ["ahora","now","“A-OR-a” contains hora, the hour: now is the hour."]],
+ p:[["Soy estudiante.","I am a student."],["Estoy cansado.","I am tired."],["Tengo hambre.","I am hungry."],["Ella está en casa.","She is at home."]],
+ g:{t:"Ser or estar?",b:"Ser says what something is: identity, job, origin. Estar says how or where it is: mood, condition, location. Tener is “to have”, and Spanish uses it for hunger and thirst: tengo hambre, “I have hunger”.",
+    tbl:[{v:"ser",f:["soy","eres","es","somos","sois","son"]},{v:"estar",f:["estoy","estás","está","estamos","estáis","están"]},{v:"tener",f:["tengo","tienes","tiene","tenemos","tenéis","tienen"]}],
+    q:{p:"Madrid ___ en España.",o:["está","es","soy","tiene"],a:0,e:"Location uses estar."}},
+ m:{n:"Pāṇini pattern grids",who:"Pāṇini · India, c. 400 BCE",why:"Pāṇini described all of Sanskrit with compact rules and patterns. Seeing a verb as a grid shows what changes and what stays, so you learn the pattern once.",tool:null,
+    steps:["Read the grid in the Learn tab row by row. Spot what changes and what stays the same.","Cover the answers and rebuild each column from memory, saying every form aloud.","Write one short sentence for each of the six forms of estar."]}},
+
+{d:5,lvl:"A1",t:"Comida y café",en:"Food and café",goal:"Order food and drink politely and ask for the bill.",
+ v:[["el agua","the water","A waterfall pouring from a giant mouth going “ah!” (agua)."],
+    ["el pan","the bread","A frying pan overflowing with bread."],
+    ["el café","the coffee","A tiny café table drinking coffee itself."],
+    ["la leche","the milk","A cow with a leaking bucket: “letch-eh”."],
+    ["el queso","the cheese","Say “kay-so… cheese!” for the camera."],
+    ["el pollo","the chicken","A chicken doing a “POY-yo” dance."],
+    ["el arroz","the rice","Rice thrown at a wedding: roll the r in “a-RROZ”."],
+    ["la fruta","the fruit","Nearly the same word as English."],
+    ["la cuenta","the bill","The waiter “counts” the bill: cuenta sounds like count."],
+    ["quiero","I want","Point at what you want and say “kyair-oh”."]],
+ p:[["Quisiera un café, por favor.","I would like a coffee, please."],["¿Qué recomienda?","What do you recommend?"],["La cuenta, por favor.","The bill, please."],["Está delicioso.","It is delicious."]],
+ g:{t:"Ordering politely",b:"Quiero is direct: “I want”. Quisiera and me gustaría mean “I would like” and sound softer. Add por favor and gracias. Use un or una before one item: un café, una naranja.",
+    q:{p:"You are ordering at a restaurant. Which sounds most polite?",o:["Quisiera un café, por favor.","Dame un café.","Café ya.","Quiero café ahora mismo."],a:0,e:"Quisiera plus por favor is the polite choice."}},
+ m:{n:"Vivid images",who:"Rhetorica ad Herennium · Rome, c. 85 BCE",why:"The author of this Roman handbook advised striking, absurd, emotional images, because plain ones fade. A strange picture stays.",tool:null,
+    steps:["Give each word an image that is vivid, odd and moving. Use the hints, or invent better ones.","Say the Spanish word aloud while the image does something loud or silly.","Tomorrow morning, recall the ten images before you look at the list."]}},
+
+{d:6,lvl:"A2",t:"Verbos en -ar",en:"Verbs ending in -ar",goal:"Say what you do every day with the most common verb family.",
+ v:[["hablar","to speak","“Ha-BLAR”: blah-blah-blah."],
+    ["trabajar","to work","Echoes “travail”: hard work."],
+    ["estudiar","to study","Echoes “study”."],
+    ["caminar","to walk","Echoes “camino”: a path to walk."],
+    ["comprar","to buy","Echoes “compra”, a purchase."],
+    ["necesitar","to need","Echoes “necessity”."],
+    ["cocinar","to cook","Echoes “cook”."],
+    ["escuchar","to listen","“Scooch ear”: lean your ear in."],
+    ["bailar","to dance","Echoes “ballet”."],
+    ["viajar","to travel","Echoes “voyage”."]],
+ p:[["Hablo un poco de español.","I speak a little Spanish."],["Trabajo en una oficina.","I work in an office."],["Estudiamos todos los días.","We study every day."],["¿Qué necesitas?","What do you need?"]],
+ g:{t:"The -ar pattern",b:"Drop -ar and add the ending that matches who acts. Spanish often drops the pronoun: say hablo, not yo hablo.",
+    tbl:[{v:"hablar",f:["hablo","hablas","habla","hablamos","habláis","hablan"]}],
+    q:{p:"Nosotros ___ español. (hablar)",o:["hablamos","hablan","hablo","habláis"],a:0,e:"Nosotros takes -amos."}},
+ m:{n:"Call and response",who:"Gurukul oral teaching · India",why:"In traditional schools the teacher calls and the student answers aloud, then roles swap. Answering out loud makes you retrieve the form instead of just recognising it.",tool:"player",ptype:"p",
+    steps:["Press start. Read each phrase aloud as the teacher's call.","Repeat it from memory before the next one arrives, changing the subject (yo, tú, nosotros).","Swap roles: say an English line aloud and answer it yourself in Spanish."]}},
+
+{d:7,lvl:"A2",t:"Días y tiempo",en:"Days and time",goal:"Name the days, talk about today, tomorrow and yesterday, and ask the time.",
+ v:[["lunes","Monday","Moon day: luna is the moon."],
+    ["martes","Tuesday","Mars day: Marte."],
+    ["miércoles","Wednesday","Mercury day: Mercurio."],
+    ["jueves","Thursday","Jupiter day: Júpiter."],
+    ["viernes","Friday","Venus day: Venus."],
+    ["sábado","Saturday","Echoes “Sabbath”."],
+    ["domingo","Sunday","Echoes “dominion”: the Lord's day."],
+    ["hoy","today","“Oy!”: oy, it is today."],
+    ["mañana","tomorrow / morning","“Man-YAH-na”: the man will do it tomorrow."],
+    ["ayer","yesterday","“Eye-YAIR”: your eye on yesterday's year."]],
+ p:[["Hoy es lunes.","Today is Monday."],["Mañana es martes.","Tomorrow is Tuesday."],["¿Qué hora es?","What time is it?"],["Nos vemos el viernes.","See you on Friday."]],
+ g:{t:"Days and the article",b:"Days are not capitalised. El lunes means “on Monday”; los lunes means “every Monday”. Mañana means both “tomorrow” and “morning”.",
+    q:{p:"How do you say “on Mondays” (every Monday)?",o:["los lunes","el lunes","lunes el","a lunes"],a:0,e:"Plural article: los lunes."}},
+ m:{n:"Double translation",who:"Cicero · Rome, 1st century BCE",why:"Cicero practised by translating Greek speeches into Latin and then back again. The gaps between your first and second version show exactly what you have not yet learned.",tool:null,
+    steps:["Read a Spanish phrase from this week and write it in English in your own words.","Hide the Spanish. Translate your English back into Spanish from memory.","Compare with the original, circle every difference and fix it."]}},
+
+{d:8,lvl:"A2",t:"Rutina diaria",en:"Daily routine",goal:"Describe your day with the -er and -ir verb families.",
+ v:[["comer","to eat","Echoes “comestible”."],
+    ["beber","to drink","Echoes “beverage”."],
+    ["leer","to read","“Lair”: read in your lair."],
+    ["escribir","to write","Echoes “scribe”."],
+    ["vivir","to live","Echoes “vivid” and “alive”."],
+    ["abrir","to open","Say “ah-BREER” as you swing a door open."],
+    ["aprender","to learn","Echoes “apprentice”."],
+    ["correr","to run","Echoes “courier”: a runner."],
+    ["dormir","to sleep","Echoes “dormitory”."],
+    ["despertarse","to wake up","“Desperate to wake up”."]],
+ p:[["Vivo en una ciudad grande.","I live in a big city."],["Como a las dos.","I eat at two o'clock."],["Me despierto a las seis.","I wake up at six."],["Leo antes de dormir.","I read before sleeping."]],
+ g:{t:"The -er and -ir patterns",b:"-er and -ir verbs share the endings -o, -es, -e, -en. They differ only for nosotros and vosotros: comemos and coméis, but vivimos and vivís.",
+    tbl:[{v:"comer",f:["como","comes","come","comemos","coméis","comen"]},{v:"vivir",f:["vivo","vives","vive","vivimos","vivís","viven"]}],
+    q:{p:"Ellos ___ cartas. (escribir)",o:["escriben","escribes","escribe","escribimos"],a:0,e:"Ellos takes -en."}},
+ m:{n:"Dictation",who:"Roman schoolrooms · writing from dictation",why:"Roman pupils wrote down what the teacher read aloud. Turning sound into spelling trains your ear and your accents together.",tool:"dictation",
+    steps:["Listen to each phrase as many times as you like.","Type exactly what you hear, including accents and the opening ¿ or ¡.","Check, study the difference, then move to the next phrase."]}},
+
+{d:9,lvl:"A2",t:"La ciudad",en:"City and directions",goal:"Ask where things are and follow directions.",
+ v:[["a la derecha","to the right","Derecha sounds like “direct”: go direct to the right."],
+    ["a la izquierda","to the left","“Eeth-KEE-air-da”: a key (kee) in your left hand."],
+    ["todo recto","straight ahead","Recto is a straight ruler, like “rectangle”."],
+    ["la calle","the street","A cat (ka) shouting “yeh!” down the street."],
+    ["la esquina","the corner","Skis leaning against the corner."],
+    ["cerca","near","Something circling close by: “circle”."],
+    ["lejos","far","A lazy hose stretching far away: “LAY-hos”."],
+    ["la estación","the station","Nearly the same as English."],
+    ["la plaza","the square","The same word as English."],
+    ["perdido","lost","“Pardon, I did it, I'm lost!”"]],
+ p:[["¿Dónde está la estación?","Where is the station?"],["Gire a la derecha.","Turn right."],["Siga todo recto dos cuadras.","Keep going straight for two blocks."],["¿Está lejos de aquí?","Is it far from here?"]],
+ g:{t:"Polite commands",b:"To give a polite instruction to someone you address as usted, take the yo form, drop the -o and flip the vowel: -ar verbs end in -e (girar → gire), -er and -ir verbs end in -a (seguir → siga). Add por favor.",
+    q:{p:"Tell a stranger politely (usted) to turn:",o:["Gire","Giras","Giré","Girar"],a:0,e:"Girar becomes gire for usted."}},
+ m:{n:"Memory journey",who:"Greek and Roman orators",why:"Orators memorised long speeches by walking a fixed route in their minds and leaving one idea at each landmark. A street route suits directions perfectly.",tool:"palace",
+    stations:["Your front door","Bus stop","Corner shop","Pedestrian crossing","Café on the corner","Bank","Station","Main square","Park gate","Home again"],
+    steps:["Imagine a walk through a neighbourhood you know. The ten stops below are a model.","Leave one word at each landmark as a vivid image, then walk the route aloud in Spanish.","Walk it again giving yourself directions: “Gire a la derecha, siga todo recto…”"]}},
+
+{d:10,lvl:"B1",t:"Pretérito",en:"The past tense",goal:"Tell what you did yesterday, last night and last week.",
+ v:[["anoche","last night","Ano-che: “a-NO-cheh”, the night just gone."],
+    ["la semana pasada","last week","Echoes “semana”: a week; pasada: passed."],
+    ["fui","I went / I was","Used for ir and ser."],
+    ["comí","I ate","The -í on the end is a finished meal."],
+    ["hablé","I spoke","The -é on the end is a finished chat."],
+    ["hice","I did / I made","Irregular: hacer becomes hice."],
+    ["vi","I saw","One tiny word: “vee”, you saw it."],
+    ["tuve","I had","Irregular: tener becomes tuve."],
+    ["dije","I said","Irregular: decir becomes dije."],
+    ["llegué","I arrived","Llegar adds u: llegué."]],
+ p:[["Ayer fui al mercado.","Yesterday I went to the market."],["Anoche comimos tarde.","Last night we ate late."],["¿Qué hiciste el fin de semana?","What did you do at the weekend?"],["Llegué a las ocho.","I arrived at eight."]],
+ g:{t:"Finished actions",b:"Use the preterite for actions that are finished. -ar verbs: -é, -aste, -ó, -amos, -aron. -er and -ir verbs: -í, -iste, -ió, -imos, -ieron. Ir and ser share forms: fui, fuiste, fue, fuimos, fueron.",
+    tbl:[{v:"hablar",f:["hablé","hablaste","habló","hablamos","hablasteis","hablaron"]},{v:"comer",f:["comí","comiste","comió","comimos","comisteis","comieron"]}],
+    q:{p:"Ella ___ ayer con su jefe. (hablar)",o:["habló","hablo","hablaba","hablará"],a:0,e:"Finished action, third person: habló."}},
+ m:{n:"Oral storytelling chain",who:"Bards and fable tellers · Greece and India",why:"Epics and fables such as the Panchatantra travelled for centuries by mouth. Each scene cues the next, which is why a story is easier to hold than a list.",tool:null,
+    steps:["Tell yesterday aloud in five short sentences, all in the preterite.","Chain them: end each sentence with a detail that starts the next. “Fui al mercado. En el mercado compré pan.”","Retell the whole story faster, adding one new detail."]}},
+
+{d:11,lvl:"B1",t:"Recuerdos",en:"Memories and descriptions",goal:"Describe how things used to be with the imperfect tense.",
+ v:[["antes","before","“Ants”: ants were here before."],
+    ["siempre","always","Echoes “semper fi”: always faithful."],
+    ["a veces","sometimes","Veces sounds like “vessels”: sometimes a vessel."],
+    ["nunca","never","Think “no-ever”."],
+    ["recuerdo","I remember","Echoes “record”: you record a memory."],
+    ["el pueblo","the town","Echoes “people”: a town of people."],
+    ["jugaba","I used to play","The -aba ending means “used to”."],
+    ["vivía","I used to live","The -ía ending means “used to”."],
+    ["era","I was / it was","The imperfect of ser."],
+    ["había","there was / there were","The imperfect of haber."]],
+ p:[["Cuando era niño, jugaba en la calle.","When I was a child, I played in the street."],["Mi abuela cocinaba todos los domingos.","My grandmother used to cook every Sunday."],["Hacía mucho calor.","It was very hot."],["Había muchos árboles.","There were many trees."]],
+ g:{t:"Habits and backdrop",b:"Use the imperfect for habits, descriptions and background in the past. -ar verbs: -aba, -abas, -aba, -ábamos, -aban. -er and -ir verbs: -ía, -ías, -ía, -íamos, -ían. Only ser (era), ir (iba) and ver (veía) are irregular.",
+    tbl:[{v:"hablar",f:["hablaba","hablabas","hablaba","hablábamos","hablabais","hablaban"]},{v:"comer",f:["comía","comías","comía","comíamos","comíais","comían"]}],
+    q:{p:"De niño, yo ___ en el parque todos los días. (jugar)",o:["jugaba","jugué","juego","jugaré"],a:0,e:"A repeated habit in the past takes the imperfect."}},
+ m:{n:"Ekphrasis",who:"Greek rhetoric schools · from the 1st century CE",why:"Students practised describing a scene or artwork so vividly that listeners could picture it. Describing a memory with the senses fits the imperfect perfectly.",tool:null,
+    steps:["Choose one place from your childhood and picture it.","Describe it aloud in the imperfect using sight, sound, smell, touch and taste.","Say it again, opening every sentence with “Cuando era niño…”"]}},
+
+{d:12,lvl:"B1",t:"Planes",en:"Future and plans",goal:"Talk about plans, promises and predictions.",
+ v:[["pronto","soon","Echoes “prompt”."],
+    ["quizás","perhaps","“Key-SAS”: perhaps the key is lost."],
+    ["el próximo año","next year","Próximo echoes “proximity”: the next one close by."],
+    ["voy a","I am going to","Voy = I go; a = to."],
+    ["esperar","to hope / to wait","Hoping and waiting are the same word."],
+    ["viajaré","I will travel","The -é on the infinitive: viajar + é."],
+    ["seré","I will be","Ser + é."],
+    ["haré","I will do / make","Irregular: hacer becomes haré."],
+    ["tendré","I will have","Irregular: tener becomes tendré."],
+    ["podré","I will be able","Irregular: poder becomes podré."]],
+ p:[["Voy a viajar a España.","I'm going to travel to Spain."],["Mañana lloverá.","It will rain tomorrow."],["¿Qué vas a hacer este verano?","What are you going to do this summer?"],["Algún día hablaré español perfectamente.","Someday I will speak Spanish perfectly."]],
+ g:{t:"Two ways to say future",b:"For plans, use ir a plus an infinitive: voy a viajar. For predictions and promises, add endings to the whole infinitive: viajar + é = viajaré. A few verbs change their stem: tendr-, har-, podr-.",
+    tbl:[{v:"hablar (future)",f:["hablaré","hablarás","hablará","hablaremos","hablaréis","hablarán"]},{v:"ir (+ a)",f:["voy","vas","va","vamos","vais","van"]}],
+    q:{p:"Mañana yo ___ con ella. (hablar, future)",o:["hablaré","hablé","hablaba","hablo"],a:0,e:"Future: infinitive plus -é."}},
+ m:{n:"Socratic dialogue",who:"Socrates · Athens, 5th century BCE",why:"Socrates taught by asking questions that made students build the answer themselves. Questioning your own plans forces you to produce full sentences.",tool:null,
+    steps:["Ask yourself aloud “¿Qué voy a hacer mañana?” and answer in a full sentence.","Ask “¿Por qué?” three times, answering each time in Spanish.","Write five question-and-answer pairs using voy a and one future form."]}},
+
+{d:13,lvl:"B2",t:"Subjuntivo",en:"Wishes and doubts",goal:"Express wishes, hopes, doubts and feelings about what others do.",
+ v:[["ojalá","I hope / if only","Say “oh-ha-LA”: a hopeful sigh."],
+    ["quiero que","I want (someone) to","Que links your wish to someone else's action."],
+    ["espero que","I hope that","Esperar plus que."],
+    ["es posible que","it's possible that","Posible echoes English."],
+    ["dudo que","I doubt that","Dudo echoes “dubious”."],
+    ["para que","so that","Para = for, que = that."],
+    ["aunque","although","“Own-kay”: although, okay."],
+    ["antes de que","before","Antes = before, de que = of that."],
+    ["tal vez","perhaps","Tal = such, vez = time."],
+    ["es importante que","it's important that","Echoes “important”."]],
+ p:[["Quiero que vengas conmigo.","I want you to come with me."],["Ojalá llueva mañana.","I hope it rains tomorrow."],["Dudo que sea verdad.","I doubt it's true."],["Es importante que estudies.","It's important that you study."]],
+ g:{t:"Flip the vowel",b:"After wishes, hopes, doubts and feelings about someone else's action, use the subjunctive. Take the yo form, drop -o and flip the vowel: hablo → hable, como → coma, vengo → venga.",
+    tbl:[{v:"hablar",f:["hable","hables","hable","hablemos","habléis","hablen"]},{v:"comer",f:["coma","comas","coma","comamos","comáis","coman"]}],
+    q:{p:"Quiero que ella ___ conmigo. (venir)",o:["venga","viene","vendrá","vino"],a:0,e:"Wish + que + different subject: venga."}},
+ m:{n:"Sententiae",who:"Roman and Vedic maxims",why:"Roman pupils memorised short maxims, and Sanskrit schools did the same with subhāṣita verses. A short saying carries a grammar pattern you can reuse.",tool:null,
+    steps:["Recite each phrase in the Learn tab as a maxim, with a firm rhythm.","Make your own: keep the opening (Quiero que, Ojalá, Dudo que) and change the rest.","Use one of them in a real message or sentence today."]}},
+
+{d:14,lvl:"B2",t:"Trabajo y condicionales",en:"Work and conditionals",goal:"Be polite, make offers and talk about what would happen.",
+ v:[["la reunión","the meeting","Echoes “reunion”: people reunite."],
+    ["la empresa","the company","Echoes “enterprise”."],
+    ["el jefe","the boss","Say “HEH-feh”: the chef who runs the kitchen."],
+    ["el cliente","the client","Echoes “client”."],
+    ["negociar","to negotiate","Echoes “negotiate”."],
+    ["la oferta","the offer","Echoes “offer”."],
+    ["sería","it would be","Ser + ía."],
+    ["podría","I could / it could","Poder + ía: a polite request."],
+    ["me gustaría","I would like","Gustar + ía: the polite wish."],
+    ["si tuviera","if I had","A tuviera-style “what if”."]],
+ p:[["Me gustaría programar una reunión.","I'd like to schedule a meeting."],["¿Podría repetirlo, por favor?","Could you repeat that, please?"],["Si tuviera tiempo, viajaría más.","If I had time, I would travel more."],["Estamos encantados de trabajar con usted.","We're delighted to work with you."]],
+ g:{t:"Would and if",b:"The conditional is the infinitive plus -ía, -ías, -ía, -íamos, -ían: hablaría, comería. It softens requests (¿podría…?) and describes what would happen. “If” sentences pair si plus the imperfect subjunctive with the conditional: Si tuviera tiempo, viajaría.",
+    tbl:[{v:"hablar",f:["hablaría","hablarías","hablaría","hablaríamos","hablaríais","hablarían"]},{v:"ser",f:["sería","serías","sería","seríamos","seríais","serían"]}],
+    q:{p:"Si tuviera dinero, ___ una casa. (comprar)",o:["compraría","compraré","compré","compro"],a:0,e:"If-clause in the imperfect subjunctive pairs with the conditional."}},
+ m:{n:"Declamation",who:"Roman rhetoric schools · suasoriae",why:"Roman students argued assigned positions in front of classmates, a practice called declamation. Taking a role makes you choose polite, persuasive language.",tool:null,
+    steps:["Pick a role: an employee asking for a deadline change, or a client asking for a discount.","Argue your case aloud for sixty seconds using me gustaría, podría and one si tuviera sentence.","Record yourself, listen back and fix one thing."]}},
+
+{d:15,lvl:"B2",t:"Conectores",en:"Opinions and connectors",goal:"Link ideas, give opinions and use common expressions.",
+ v:[["sin embargo","however","“Sin” = without, “embargo” = obstacle: without stopping the point."],
+    ["por lo tanto","therefore","Echoes “for the tanto”: for that reason."],
+    ["a pesar de","despite","Pesar = weight: despite the weight."],
+    ["sobre todo","above all","Sobre = over, todo = all."],
+    ["en cambio","on the other hand","Cambio = change of side."],
+    ["de hecho","in fact","Hecho echoes “fact”."],
+    ["a menudo","often","“Ah, meh-NOO-do”: often on the menu."],
+    ["echar de menos","to miss (someone)","Literally “to throw less”: you feel the loss."],
+    ["tener ganas de","to feel like (doing)","Ganas = desire."],
+    ["estar de acuerdo","to agree","Acuerdo echoes “accord”."]],
+ p:[["Estoy de acuerdo, sin embargo, tengo dudas.","I agree; however, I have doubts."],["A pesar del cansancio, seguí estudiando.","Despite the tiredness, I kept studying."],["Echo de menos a mi familia.","I miss my family."],["De hecho, aprendí más de lo que esperaba.","In fact, I learned more than I expected."]],
+ g:{t:"Linking ideas",b:"Sin embargo (however), por lo tanto (therefore) and en cambio (on the other hand) join ideas. A pesar de takes a noun or an infinitive. Echar de menos takes a when you miss a person: echo de menos a mi familia.",
+    q:{p:"Which connector means “however”?",o:["sin embargo","por lo tanto","sobre todo","de hecho"],a:0,e:"Sin embargo means however."}},
+ m:{n:"Docendo discimus",who:"Seneca · Rome, c. 65 CE",why:"Seneca wrote that people learn while they teach. Explaining what you know shows you quickly where the gaps are.",tool:null,
+    steps:["Teach five things you learned this fortnight to someone, or to an empty room, in simple Spanish.","Each time you stall, mark it. That is a gap.","Take every gap to your review deck and drill it tomorrow."]}}
+];
+</script>
+
+<script>
+(function(){
+'use strict';
+const $app=document.getElementById('app');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const roman=n=>['','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV'][n];
+const LV={A1:'Beginner',A2:'Elementary',B1:'Intermediate',B2:'Upper-intermediate'};
+const DAY_MS=864e5;
+const INTV=[0,1,2,4,8,16];
+const BOXLAB=['New','1 day','2 days','4 days','8 days','16 days'];
+const PRON=['yo','tú','él / ella / usted','nosotros','vosotros','ellos / ellas / ustedes'];
+const HAS_TTS=('speechSynthesis' in window)&&('SpeechSynthesisUtterance' in window);
+const TTS=true; /* recorded audio ships with the page, so the listen buttons always show */
+/* text -> clip id. Files live at audio/<id>.mp3 */
+const AUDIO={"hola":"a000","buenos días":"a001","buenas tardes":"a002","buenas noches":"a003","adiós":"a004","hasta luego":"a005","por favor":"a006","gracias":"a007","de nada":"a008","perdón":"a009","Me llamo Ana.":"a010","¿Cómo estás?":"a011","Estoy bien, gracias.":"a012","Mucho gusto.":"a013","uno":"a014","dos":"a015","tres":"a016","cuatro":"a017","cinco":"a018","seis":"a019","siete":"a020","ocho":"a021","nueve":"a022","diez":"a023","Dos cafés, por favor.":"a024","Somos cuatro.":"a025","Son las tres.":"a026","Tengo diez euros.":"a027","la madre":"a028","el padre":"a029","el hermano":"a030","la hermana":"a031","el hijo":"a032","la hija":"a033","el abuelo":"a034","la abuela":"a035","el amigo":"a036","la familia":"a037","Esta es mi familia.":"a038","Tengo dos hermanos.":"a039","Mi madre es doctora.":"a040","¿Tienes hermanos?":"a041","ser":"a042","estar":"a043","tener":"a044","feliz":"a045","cansado":"a046","alto":"a047","aquí":"a048","allí":"a049","muy":"a050","ahora":"a051","Soy estudiante.":"a052","Estoy cansado.":"a053","Tengo hambre.":"a054","Ella está en casa.":"a055","el agua":"a056","el pan":"a057","el café":"a058","la leche":"a059","el queso":"a060","el pollo":"a061","el arroz":"a062","la fruta":"a063","la cuenta":"a064","quiero":"a065","Quisiera un café, por favor.":"a066","¿Qué recomienda?":"a067","La cuenta, por favor.":"a068","Está delicioso.":"a069","hablar":"a070","trabajar":"a071","estudiar":"a072","caminar":"a073","comprar":"a074","necesitar":"a075","cocinar":"a076","escuchar":"a077","bailar":"a078","viajar":"a079","Hablo un poco de español.":"a080","Trabajo en una oficina.":"a081","Estudiamos todos los días.":"a082","¿Qué necesitas?":"a083","lunes":"a084","martes":"a085","miércoles":"a086","jueves":"a087","viernes":"a088","sábado":"a089","domingo":"a090","hoy":"a091","mañana":"a092","ayer":"a093","Hoy es lunes.":"a094","Mañana es martes.":"a095","¿Qué hora es?":"a096","Nos vemos el viernes.":"a097","comer":"a098","beber":"a099","leer":"a100","escribir":"a101","vivir":"a102","abrir":"a103","aprender":"a104","correr":"a105","dormir":"a106","despertarse":"a107","Vivo en una ciudad grande.":"a108","Como a las dos.":"a109","Me despierto a las seis.":"a110","Leo antes de dormir.":"a111","a la derecha":"a112","a la izquierda":"a113","todo recto":"a114","la calle":"a115","la esquina":"a116","cerca":"a117","lejos":"a118","la estación":"a119","la plaza":"a120","perdido":"a121","¿Dónde está la estación?":"a122","Gire a la derecha.":"a123","Siga todo recto dos cuadras.":"a124","¿Está lejos de aquí?":"a125","anoche":"a126","la semana pasada":"a127","fui":"a128","comí":"a129","hablé":"a130","hice":"a131","vi":"a132","tuve":"a133","dije":"a134","llegué":"a135","Ayer fui al mercado.":"a136","Anoche comimos tarde.":"a137","¿Qué hiciste el fin de semana?":"a138","Llegué a las ocho.":"a139","antes":"a140","siempre":"a141","a veces":"a142","nunca":"a143","recuerdo":"a144","el pueblo":"a145","jugaba":"a146","vivía":"a147","era":"a148","había":"a149","Cuando era niño, jugaba en la calle.":"a150","Mi abuela cocinaba todos los domingos.":"a151","Hacía mucho calor.":"a152","Había muchos árboles.":"a153","pronto":"a154","quizás":"a155","el próximo año":"a156","voy a":"a157","esperar":"a158","viajaré":"a159","seré":"a160","haré":"a161","tendré":"a162","podré":"a163","Voy a viajar a España.":"a164","Mañana lloverá.":"a165","¿Qué vas a hacer este verano?":"a166","Algún día hablaré español perfectamente.":"a167","ojalá":"a168","quiero que":"a169","espero que":"a170","es posible que":"a171","dudo que":"a172","para que":"a173","aunque":"a174","antes de que":"a175","tal vez":"a176","es importante que":"a177","Quiero que vengas conmigo.":"a178","Ojalá llueva mañana.":"a179","Dudo que sea verdad.":"a180","Es importante que estudies.":"a181","la reunión":"a182","la empresa":"a183","el jefe":"a184","el cliente":"a185","negociar":"a186","la oferta":"a187","sería":"a188","podría":"a189","me gustaría":"a190","si tuviera":"a191","Me gustaría programar una reunión.":"a192","¿Podría repetirlo, por favor?":"a193","Si tuviera tiempo, viajaría más.":"a194","Estamos encantados de trabajar con usted.":"a195","sin embargo":"a196","por lo tanto":"a197","a pesar de":"a198","sobre todo":"a199","en cambio":"a200","de hecho":"a201","a menudo":"a202","echar de menos":"a203","tener ganas de":"a204","estar de acuerdo":"a205","Estoy de acuerdo, sin embargo, tengo dudas.":"a206","A pesar del cansancio, seguí estudiando.":"a207","Echo de menos a mi familia.":"a208","De hecho, aprendí más de lo que esperaba.":"a209"};
+const SPK='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+
+/* ---------- storage (this browser only) ---------- */
+const KEY='quince-dias-v1';
+const blank=()=>({done:{},learned:{},steps:{},deck:{},xp:0,streak:{count:0,last:''},final:null});
+function load(){try{const r=localStorage.getItem(KEY);if(r){return Object.assign(blank(),JSON.parse(r));}}catch(e){}return blank();}
+let S=load();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+const ymd=t=>{const x=new Date(t);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};
+function touch(){const t=ymd(Date.now()),y=ymd(Date.now()-DAY_MS),s=S.streak;if(s.last===t)return;s.count=(s.last===y)?s.count+1:1;s.last=t;}
+const streakNow=()=>{const s=S.streak,t=ymd(Date.now()),y=ymd(Date.now()-DAY_MS);return(s.last===t||s.last===y)?s.count:0;};
+
+/* ---------- helpers ---------- */
+const norm=s=>String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[¿?¡!.,;:]/g,'').replace(/\s+/g,' ').trim();
+const art=s=>s.replace(/^(el|la|los|las|un|una) /,'');
+const sameAns=(a,b)=>norm(a)===norm(b)||art(norm(a))===art(norm(b));
+const plain=s=>String(s).toLowerCase().replace(/[¿?¡!.,;:]/g,'').replace(/\s+/g,' ').trim();
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}return a;};
+function speakTTS(t,r){try{if(!HAS_TTS)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='es-ES';u.rate=r||.85;const v=speechSynthesis.getVoices().find(v=>/^es/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u);}catch(e){}}
+const firstOpen=()=>{for(let d=1;d<=15;d++)if(!S.done[d])return d;return 15;};
+const doneCount=()=>Object.keys(S.done).length;
+const techDone=d=>[0,1,2].every(i=>S.steps[d+'-'+i]);
+const dueKeys=()=>{const n=Date.now();return Object.keys(S.deck).filter(k=>S.deck[k].due<=n);};
+function rel(ms){const m=Math.max(1,Math.round(ms/60000));if(m<60)return m+' min';const h=Math.round(m/60);if(h<24)return h+' h';return Math.round(h/24)+' d';}
+
+let curAudio=null;
+function stopAudio(){try{if(curAudio){curAudio.pause();curAudio=null;}}catch(e){}try{if(HAS_TTS)speechSynthesis.cancel();}catch(e){}}
+function speak(t,r){
+  stopAudio();
+  const f=AUDIO[t];
+  if(f){
+    try{
+      const a=new Audio('audio/'+f+'.mp3');
+      a.playbackRate=(r&&r<.8)?.6:1;
+      if('preservesPitch' in a)a.preservesPitch=true;
+      a.onerror=function(){speakTTS(t,r);};
+      curAudio=a;
+      const pr=a.play();
+      if(pr&&pr.catch)pr.catch(function(){speakTTS(t,r);});
+      return;
+    }catch(e){}
+  }
+  speakTTS(t,r);
+}
+
+/* ---------- pronunciation: English respelling, Latin American sounds ---------- */
+const VOW={a:['a',0],'á':['a',1],e:['e',0],'é':['e',1],i:['i',0],'í':['i',1],o:['o',0],'ó':['o',1],u:['u',0],'ú':['u',1],'ü':['u',0]};
+const STRONG={a:1,e:1,o:1};
+const NUC1={a:'ah',e:'eh',i:'ee',o:'oh',u:'oo'};
+const NUC2={ai:'igh',ei:'ay',oi:'oy',ui:'wee',au:'ow',eu:'eh-oo',ia:'yah',ie:'yeh',io:'yoh',iu:'yoo',ua:'wah',ue:'weh',uo:'woh',ii:'ee',uu:'oo'};
+const ONSET=['p','b','f','c','k','g','t','d'];
+function nucSound(v){
+  if(v.length===1)return NUC1[v[0]];
+  const k=v.join('');
+  if(NUC2[k])return NUC2[k];
+  if(v.length===3)return (v[0]==='i'?'y':'w')+(NUC2[v[1]+v[2]]||NUC1[v[1]]);
+  return v.map(x=>NUC1[x]).join('');
+}
+function hiatus(p,n){return (STRONG[p.v]&&STRONG[n.v])||(!STRONG[p.v]&&p.a)||(!STRONG[n.v]&&n.a);}
+function tokenize(w){
+  const t=[];let i=0;
+  while(i<w.length){
+    const c=w[i],n=w[i+1]||'';
+    if(VOW[c]){t.push({v:VOW[c][0],a:VOW[c][1]});i++;continue;}
+    if(c==='c'&&n==='h'){t.push({c:'ch'});i+=2;continue;}
+    if(c==='l'&&n==='l'){t.push({c:'ll'});i+=2;continue;}
+    if(c==='r'&&n==='r'){t.push({c:'rr'});i+=2;continue;}
+    if((c==='q'||c==='g')&&n==='u'&&'eéií'.indexOf(w[i+2]||'~')>=0){t.push({c:c+'u'});i+=2;continue;}
+    if(c==='y'&&i===w.length-1){t.push({v:'i',a:0});i++;continue;}
+    t.push({c:c});i++;
+  }
+  return t;
+}
+function splitAt(cs){
+  const m=cs.length;
+  if(m===1)return cs[0].c==='x'?1:0;
+  if(m<1)return 0;
+  const a=cs[m-2].c,b=cs[m-1].c,liquid=(b==='l'||b==='r')&&ONSET.indexOf(a)>=0;
+  if(m===2)return liquid?0:1;
+  return liquid?m-2:m-1;
+}
+function cons(t,i){
+  const c=t[i].c,p=t[i-1],n=t[i+1];
+  switch(c){
+    case 'ch':return 'ch';
+    case 'll':return 'y';
+    case 'rr':return 'rr';
+    case 'qu':return 'k';
+    case 'gu':return 'g';
+    case 'q':case 'k':return 'k';
+    case 'b':case 'v':return 'b';
+    case 'c':return (n&&n.v&&(n.v==='e'||n.v==='i'))?'s':'k';
+    case 'g':return (n&&n.v&&(n.v==='e'||n.v==='i'))?'h':'g';
+    case 'd':return (p&&p.v&&(!n||n.v))?'dh':'d';
+    case 'h':return '';
+    case 'j':return 'h';
+    case 'ñ':return 'ny';
+    case 'r':return (!p||(p.c&&p.c.length===1&&'nls'.indexOf(p.c)>=0))?'rr':'r';
+    case 'x':return 'ks';
+    case 'z':return 's';
+    default:return c;
+  }
+}
+function pw(w){
+  const t=tokenize(w),nuc=[];
+  for(let k=0;k<t.length;k++){
+    if(!t[k].v)continue;
+    const idx=[k];
+    while(t[k+1]&&t[k+1].v&&!hiatus(t[k],t[k+1])){k++;idx.push(k);}
+    nuc.push(idx);
+  }
+  if(!nuc.length)return w;
+  nuc.forEach(ix=>{t[ix[0]].snd=nucSound(ix.map(j=>t[j].v));ix.slice(1).forEach(j=>{t[j].skip=1;});});
+  const starts=[0];
+  for(let s=1;s<nuc.length;s++){
+    const a=nuc[s-1][nuc[s-1].length-1]+1,b=nuc[s][0];
+    starts.push(a+splitAt(t.slice(a,b)));
+  }
+  starts.push(t.length);
+  const syl=[];
+  for(let s=0;s<nuc.length;s++){
+    let out='';
+    for(let j=starts[s];j<starts[s+1];j++){
+      const x=t[j];
+      if(x.skip)continue;
+      out+=x.v?x.snd:cons(t,j);
+    }
+    syl.push(out);
+  }
+  let st=-1;
+  if(syl.length>1){
+    nuc.forEach((ix,s)=>{if(ix.some(j=>t[j].a))st=s;});
+    if(st<0)st='aeiouns'.indexOf(w[w.length-1])>=0?syl.length-2:syl.length-1;
+  }
+  return syl.map((x,s)=>s===st?x.toUpperCase():x).join('-');
+}
+function pron(s){
+  return String(s).toLowerCase().replace(/[¿?¡!.,;:()]/g,' ').split(/\s+/).filter(Boolean).map(pw).join(' ');
+}
+function sayBtns(es){
+  return TTS?'<span class="sayrow"><button class="say" data-act="say" data-s="'+esc(es)+'" aria-label="Hear '+esc(es)+'">'+SPK+'</button><button class="say slow" data-act="say" data-s="'+esc(es)+'" data-r="0.5" aria-label="Hear '+esc(es)+' slowly">slow</button></span>':'';
+}
+const PKEY='<details class="key"><summary>How to read the pronunciation</summary><dl>'+
+  [['ah eh ee oh oo','The five Spanish vowels, as in father, bet, machine, more and rule. They never change.'],
+   ['CAPITALS','The stressed syllable. Say it a little louder and longer.'],
+   ['rr','A rolled r. A single r is one quick tap of the tongue.'],
+   ['dh','A soft th, as in “this”. Spanish d sounds like this between vowels and at the end of a word.'],
+   ['h','A rough h, as in “hot”. It is used for j, and for g before e or i. The written letter h is silent.'],
+   ['s','The letters c (before e or i) and z sound like s in Latin America. In Spain they sound like th.'],
+   ['ny · y','ñ sounds like the ny in “canyon”. ll sounds like the y in “yes”.']]
+  .map(r=>'<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>').join('')+
+  '</dl><p class="en" style="margin:12px 0 0">These respellings are close English approximations. Use the listen and slow buttons to hear the real sound.</p></details>';
+
+/* ---------- quiz building ---------- */
+const ALLV=DAYS.flatMap(x=>x.v.map(w=>({es:w[0],en:w[1],d:x.d})));
+const ALLP=DAYS.flatMap(x=>x.p.map(p=>({es:p[0],en:p[1],d:x.d})));
+function distract(w,key,n){
+  const seen=new Set([w[key]]),out=[];
+  const pool=shuffle(ALLV.filter(x=>x.d===w.d)).concat(shuffle(ALLV.filter(x=>x.d!==w.d)));
+  for(const x of pool){if(out.length>=n)break;if(seen.has(x[key]))continue;seen.add(x[key]);out.push(x[key]);}
+  return out;
+}
+function mcFrom(p,sub,right,wrongs,extra){const o=shuffle([right].concat(wrongs));return Object.assign({k:'mc',p:p,sub:sub||'',o:o,a:o.indexOf(right)},extra||{});}
+const vq=(w,dir)=>dir==='es'
+  ?mcFrom('What does “'+w.es+'” mean?','',w.en,distract(w,'en',3),{say:w.es,e:w.es+' = '+w.en})
+  :mcFrom('How do you say “'+w.en+'” in Spanish?','',w.es,distract(w,'es',3),{e:w.en+' = '+w.es});
+const tq=w=>({k:'type',p:'Type the Spanish for “'+w.en+'”',sub:'Starts with “'+w.es.charAt(0)+'”. Accents are optional.',ans:w.es,e:w.en+' = '+w.es});
+function pq(p){const wr=shuffle(ALLP.filter(x=>x.en!==p.en)).slice(0,3).map(x=>x.en);return mcFrom('Translate: “'+p.es+'”','',p.en,wr,{say:p.es,e:p.es+' = '+p.en});}
+function gq(g){const right=g.o[g.a];return mcFrom(g.p,'Grammar check',right,g.o.filter((_,i)=>i!==g.a),{e:g.e});}
+function buildQuiz(d){
+  const D=DAYS[d-1];
+  const ws=shuffle(D.v.map(w=>({es:w[0],en:w[1],d:d})));
+  const ps=shuffle(D.p.map(p=>({es:p[0],en:p[1],d:d})));
+  return shuffle([vq(ws[0],'es'),vq(ws[1],'es'),vq(ws[2],'es'),vq(ws[3],'en'),vq(ws[4],'en'),vq(ws[5],'en'),tq(ws[6]),pq(ps[0]),pq(ps[1]),gq(D.g.q)]);
+}
+function buildFinal(){
+  return shuffle(DAYS.map(D=>{
+    if(D.d%2){const w=D.v[Math.floor(Math.random()*D.v.length)];return vq({es:w[0],en:w[1],d:D.d},D.d%4===1?'es':'en');}
+    return gq(D.g.q);
+  }));
+}
+
+/* ---------- ui state ---------- */
+const ui={view:'course',day:firstOpen(),tab:'learn',quiz:null,review:null,dict:{i:0,res:null,val:''},pl:{on:false,i:0,t:null}};
+
+/* ---------- views ---------- */
+function headerHTML(){
+  return '<div class="tilestrip" aria-hidden="true"></div><header class="top"><h1>Quince Días</h1>'+
+  '<p>Spanish in fifteen days, from your first hello to the subjunctive. One lesson, one ancient memory method and one quiz a day.</p>'+
+  '<div class="stats"><span class="chip"><b>'+streakNow()+'</b> day streak</span><span class="chip"><b>'+S.xp+'</b> XP</span><span class="chip"><b>'+doneCount()+'</b>/15 days done</span></div></header>';
+}
+function planHTML(){
+  if(doneCount()>=15){
+    return '<div class="plan"><div><span class="eyebrow">¡Felicidades!</span><h2>All fifteen days complete</h2><p>'+(S.final?'Final exam: '+S.final.score+'/15. ':'Take the final exam on Día XV. ')+'Keep your review deck alive to make it stick.</p></div><button class="btn alt" data-act="view" data-v="review">Open review</button></div>';
+  }
+  const n=firstOpen(),D=DAYS[n-1],started=S.learned[n]||[0,1,2].some(i=>S.steps[n+'-'+i]);
+  return '<div class="plan"><div><span class="eyebrow">Today’s plan</span><h2>Día '+roman(n)+' · '+esc(D.t)+'</h2><p>Ten words, one ancient memory method and a ten-question quiz. About twenty minutes.</p></div><button class="btn alt" data-act="go" data-d="'+n+'">'+(started?'Continue':'Start day')+'</button></div>';
+}
+function segHTML(){
+  const due=dueKeys().length;
+  return '<div class="seg" role="group" aria-label="Section"><button data-act="view" data-v="course" aria-pressed="'+(ui.view==='course')+'">Course</button><button data-act="view" data-v="review" aria-pressed="'+(ui.view==='review')+'">Review'+(due?'<span class="badge">'+due+'</span>':'')+'</button></div>';
+}
+function mapHTML(){
+  const nodes=DAYS.map(D=>{
+    const dn=!!S.done[D.d],cur=ui.view==='course'&&ui.day===D.d;
+    return '<button class="node'+(dn?' done':'')+'" data-act="go" data-d="'+D.d+'"'+(cur?' aria-current="true"':'')+' aria-label="Day '+D.d+': '+esc(D.t)+(dn?', completed':'')+'"><b>'+roman(D.d)+'</b><small>'+(dn?'✓ ':'')+D.lvl+'</small></button>';
+  }).join('');
+  return '<section class="map" aria-label="Fifteen day course"><div class="mapgrid">'+nodes+'</div>'+
+  '<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="15" aria-valuenow="'+doneCount()+'"><i style="width:'+(doneCount()/15*100)+'%"></i></div>'+
+  '<div class="levels"><span>A1 Beginner · I–V</span><span>A2 Elementary · VI–IX</span><span>B1 Intermediate · X–XII</span><span>B2 Upper-intermediate · XIII–XV</span></div></section>';
+}
+function dayHTML(){
+  const D=DAYS[ui.day-1];
+  const pips=[['Words',S.learned[D.d]],['Method',techDone(D.d)],['Quiz',S.done[D.d]]].map(p=>'<span class="pip'+(p[1]?' on':'')+'"><i></i>'+p[0]+'</span>').join('');
+  const tabs=[['learn','Learn'],['method','Method'],['quiz','Quiz']].map(t=>'<button role="tab" data-act="tab" data-t="'+t[0]+'" aria-selected="'+(ui.tab===t[0])+'">'+t[1]+'</button>').join('');
+  const pane=ui.tab==='learn'?learnPane(D):ui.tab==='method'?methodPane(D):quizPane(D);
+  return '<section class="day" id="daypanel"><div class="dayhead"><span class="lvl">'+D.lvl+' · '+LV[D.lvl]+'</span><h2>Día '+roman(D.d)+' · '+esc(D.t)+'</h2><p class="goal">'+esc(D.goal)+'</p><div class="pips">'+pips+'</div></div><div class="tabs" role="tablist">'+tabs+'</div><div class="pane">'+pane+'</div></section>';
+}
+function rowHTML(es,en,m){
+  return '<li class="row">'+sayBtns(es)+'<div class="txt"><span class="es">'+esc(es)+'</span><span class="pron">'+esc(pron(es))+'</span><span class="en">'+esc(en)+'</span>'+(m?'<span class="pic">Picture it: '+esc(m)+'</span>':'')+'</div></li>';
+}
+function tableHTML(g){
+  if(!g.tbl)return '';
+  return '<div class="tblw"><table><thead><tr><th></th>'+g.tbl.map(t=>'<th>'+esc(t.v)+'</th>').join('')+'</tr></thead><tbody>'+
+    PRON.map((p,i)=>'<tr><th scope="row">'+p+'</th>'+g.tbl.map(t=>'<td>'+esc(t.f[i])+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
+}
+function learnPane(D){
+  return PKEY+'<div><h3>Ten words</h3><ul class="list">'+D.v.map(w=>rowHTML(w[0],w[1],w[2])).join('')+'</ul></div>'+
+  '<div><h3>Four phrases</h3><ul class="list">'+D.p.map(p=>rowHTML(p[0],p[1])).join('')+'</ul></div>'+
+  '<div class="gram"><h3>'+esc(D.g.t)+'</h3><p>'+esc(D.g.b)+'</p>'+tableHTML(D.g)+'</div>'+
+  (S.learned[D.d]?'<p class="fb ok">These ten words are in your review deck.</p>':'<button class="btn" data-act="learned">I’ve studied these. Add them to my review deck</button>');
+}
+function toolHTML(D){
+  const M=D.m;
+  if(M.tool==='palace'){
+    return '<div><h3>Your memory route</h3><ol class="list">'+D.v.map((w,i)=>'<li class="row"><div class="txt"><span class="en">Stop '+(i+1)+' · '+esc(M.stations[i])+'</span><span class="es">'+esc(w[0])+'</span><span class="pron">'+esc(pron(w[0]))+'</span><span class="en">'+esc(w[1])+'</span>'+(w[2]?'<span class="pic">'+esc(w[2])+'</span>':'')+'</div></li>').join('')+'</ol></div>';
+  }
+  if(M.tool==='player'){
+    const items=M.ptype==='v'?D.v:D.p;
+    return '<div class="stage" id="stage" aria-live="polite"><div class="big" id="pl-es">Ready</div><div class="pron" id="pl-pr"></div><div class="en" id="pl-en">'+items.length+' items · 3 rounds</div></div><div class="actions"><button class="btn" data-act="pl">Start</button></div>';
+  }
+  if(M.tool==='dictation'){
+    const items=D.p,i=ui.dict.i%items.length,it=items[i],r=ui.dict.res;
+    const msg={perfect:'Perfect.',accents:'Right words. Check the accents.',miss:'Close. Compare with the original.'};
+    return '<div class="qcard"><span class="en">Phrase '+(i+1)+' of '+items.length+'</span>'+
+    (TTS?'<div class="actions"><button class="btn ghost sm" data-act="say" data-s="'+esc(it[0])+'">Listen</button></div>':'<p class="qprompt">'+esc(it[0])+'</p><span class="en">Audio is not available here, so copy the phrase by hand.</span>')+
+    '<input class="txt" id="dict-in" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type what you hear" value="'+esc(ui.dict.val||'')+'"'+(r?' readonly':' data-af="1"')+'>'+
+    (r?'<p class="fb '+(r==='miss'?'no':'ok')+'">'+msg[r]+'<br><b>'+esc(it[0])+'</b> · '+esc(it[1])+'<span class="pron">'+esc(pron(it[0]))+'</span></p>':'')+
+    '<div class="actions">'+(r?'<button class="btn" data-act="dnext" data-af="1">Next phrase</button>':'<button class="btn" data-act="dcheck">Check</button>')+'</div></div>';
+  }
+  return '';
+}
+function methodPane(D){
+  const M=D.m;
+  const steps=M.steps.map((s,i)=>{const on=!!S.steps[D.d+'-'+i];return '<li><button class="step'+(on?' on':'')+'" data-act="step" data-i="'+i+'" aria-pressed="'+on+'"><span class="box">'+(on?'✓':'')+'</span><span>'+esc(s)+'</span></button></li>';}).join('');
+  return '<div class="tech"><span class="src">'+esc(M.who)+'</span><h3>'+esc(M.n)+'</h3><p>'+esc(M.why)+'</p></div>'+toolHTML(D)+'<div><h3>Practice in three steps</h3><ul class="steps">'+steps+'</ul></div>';
+}
+function quizPane(D){
+  const Q=ui.quiz;
+  if(!Q){
+    const r=S.done[D.d];
+    return '<div class="qcard"><h3>Daily quiz</h3><p style="margin:0">Ten questions: meanings both ways, one typed answer, two phrases and one grammar check. Seven correct completes the day.</p>'+
+    (r?'<p class="fb ok">Completed with '+r.score+'/'+r.n+'.</p>':'')+
+    '<div class="actions"><button class="btn" data-act="quiz">'+(r?'Take it again':'Start quiz')+'</button>'+(D.d===15?'<button class="btn alt" data-act="final">Final exam · 15 questions</button>':'')+'</div>'+
+    (D.d===15&&S.final?'<span class="en">Best final exam: '+S.final.score+'/15</span>':'')+'</div>';
+  }
+  const n=Q.qs.length;
+  if(Q.fin){
+    const need=Math.ceil(n*0.7);
+    return '<div class="qcard"><h3>'+(Q.pass?'¡Muy bien!':'Almost there')+'</h3><p class="qprompt">'+Q.score+' / '+n+'</p><p style="margin:0">'+
+    (Q.pass?(Q.final?'You passed the final exam.':'Día '+roman(Q.d)+' is complete.'):'You need '+need+' correct to pass. Look back through the Learn tab and try again.')+'</p>'+
+    '<div class="actions"><button class="btn'+(Q.pass?' ghost':'')+'" data-act="'+(Q.final?'final':'quiz')+'">Try again</button>'+
+    (Q.pass&&!Q.final&&Q.d<15?'<button class="btn" data-act="nextday">Continue to Día '+roman(Q.d+1)+'</button>':'')+
+    (Q.pass&&!Q.final&&Q.d===15?'<button class="btn alt" data-act="final">Take the final exam</button>':'')+
+    '<button class="btn ghost" data-act="qend">Back</button></div></div>';
+  }
+  const q=Q.qs[Q.i];
+  let body='';
+  if(q.k==='mc'){
+    body='<div class="opts">'+q.o.map((o,i)=>{
+      let c='opt';if(Q.checked){if(i===q.a)c+=' right';else if(i===Q.pick)c+=' wrong';}
+      return '<button class="'+c+'" data-act="pick" data-i="'+i+'"'+(Q.checked?' disabled':'')+'>'+esc(o)+'</button>';
+    }).join('')+'</div>';
+  }else{
+    body='<input class="txt" id="qin" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Your answer" value="'+esc(Q.typed||'')+'"'+(Q.checked?' readonly':' data-af="1"')+'>'+
+    (Q.checked?'':'<div class="actions"><button class="btn" data-act="tcheck">Check</button></div>');
+  }
+  const fb=Q.checked?'<p class="fb '+(Q.ok?'ok':'no')+'">'+(Q.ok?'Correct. ':'Not quite. ')+(q.k==='type'&&!Q.ok?'Answer: <b>'+esc(q.ans)+'</b>. ':'')+esc(q.e||'')+'</p><div class="actions"><button class="btn" data-act="next" data-af="1">'+(Q.i+1<n?'Next':'See results')+'</button></div>':'';
+  return '<div class="qcard"><div class="bar"><i style="width:'+(Q.i/n*100)+'%"></i></div><span class="en">Question '+(Q.i+1)+' of '+n+(Q.final?' · final exam':'')+'</span>'+
+  '<p class="qprompt">'+esc(q.p)+'</p>'+(q.sub?'<span class="en">'+esc(q.sub)+'</span>':'')+
+  (q.say&&TTS?'<div class="actions"><button class="btn ghost sm" data-act="say" data-s="'+esc(q.say)+'">Hear it</button></div>':'')+body+fb+'</div>';
+}
+
+/* ---------- review deck ---------- */
+function reviewHTML(){
+  const keys=Object.keys(S.deck),now=Date.now(),R=ui.review;
+  if(R&&!R.done&&R.queue.length){
+    const c=S.deck[R.queue[0]],recall=c.box>=2,front=recall?c.en:c.es,back=recall?c.es:c.en;
+    const nb=b=>INTV[Math.min(5,b)];
+    return '<section class="day"><div class="pane"><div class="bar"><i style="width:'+(R.n/(R.n+R.queue.length)*100)+'%"></i></div><span class="en">'+R.queue.length+' left · '+(recall?'Recall: say it in Spanish':'Recognise: what does it mean?')+'</span>'+
+    '<div class="stage"><div class="big">'+esc(front)+'</div>'+(!recall&&TTS?'<button class="say" data-act="say" data-s="'+esc(c.es)+'" aria-label="Hear it">'+SPK+'</button>':'')+
+    (R.rev?'<div class="big ans">'+esc(back)+'</div><div class="pron">'+esc(pron(c.es))+'</div>'+(recall&&TTS?'<button class="say" data-act="say" data-s="'+esc(c.es)+'" aria-label="Hear it">'+SPK+'</button>':''):'')+'</div>'+
+    (R.rev?'<div class="actions"><button class="btn ghost" data-act="rate" data-r="again">Again · 10 min</button><button class="btn" data-act="rate" data-r="good">Good · '+nb(c.box+1)+' d</button><button class="btn alt" data-act="rate" data-r="easy">Easy · '+nb(c.box+2)+' d</button></div>'
+          :'<div class="actions"><button class="btn" data-act="reveal" data-af="1">Show answer</button></div>')+'</div></section>';
+  }
+  if(R&&R.done){
+    return '<section class="day"><div class="pane"><div class="qcard"><h3>Session complete</h3><p class="qprompt">'+R.n+' cards reviewed</p><p style="margin:0">Cards you found easy come back later; hard ones return sooner.</p><div class="actions"><button class="btn" data-act="rend">Back to deck</button></div></div></div></section>';
+  }
+  if(!keys.length){
+    return '<section class="day"><div class="pane"><div class="qcard"><h3>Your review deck is empty</h3><p style="margin:0">Open any day and press “Add them to my review deck” on the Learn tab. Words come back at growing gaps of 1, 2, 4, 8 and 16 days, the spaced repetition that Roman teachers called repetitio.</p><div class="actions"><button class="btn" data-act="go" data-d="'+firstOpen()+'">Go to Día '+roman(firstOpen())+'</button></div></div></div></section>';
+  }
+  const due=dueKeys().length,cnt=[0,0,0,0,0,0];
+  keys.forEach(k=>cnt[S.deck[k].box]++);
+  const mx=Math.max.apply(null,cnt)||1;
+  const next=keys.map(k=>S.deck[k].due).filter(t=>t>now).sort((a,b)=>a-b)[0];
+  return '<section class="day"><div class="pane"><div class="qcard"><h3>'+(due?due+' card'+(due===1?'':'s')+' due':'All caught up')+'</h3><p style="margin:0">'+keys.length+' words in your deck.'+(due?'':(next?' Next card is ready in '+rel(next-now)+'.':''))+'</p>'+
+  (due?'<div class="actions"><button class="btn" data-act="rstart">Start review ('+Math.min(due,20)+')</button></div>':'')+'</div>'+
+  '<div><h3>Where your words are</h3><div class="boxes" aria-hidden="true">'+cnt.map(c=>'<div style="height:'+Math.max(6,c/mx*100)+'%"></div>').join('')+'</div><div class="boxlab">'+BOXLAB.map((l,i)=>'<span>'+l+'<br>'+cnt[i]+'</span>').join('')+'</div></div></div></section>';
+}
+
+function footHTML(){
+  return '<footer class="foot"><p>Fifteen days builds a solid base. The B1 and B2 days introduce the grammar, and your review deck is what makes it last.</p><p>Progress is saved in this browser only.</p></footer>';
+}
+
+/* ---------- render ---------- */
+function render(){
+  if(ui.pl.t)clearInterval(ui.pl.t);
+  ui.pl={on:false,i:0,t:null};
+  stopAudio();
+  $app.innerHTML='<div class="wrap">'+headerHTML()+planHTML()+segHTML()+(ui.view==='course'?mapHTML()+dayHTML():reviewHTML())+footHTML()+'</div>';
+  const f=$app.querySelector&&$app.querySelector('[data-af]');
+  if(f&&f.focus)f.focus({preventScroll:true});
+}
+function toPanel(){
+  const el=document.getElementById('daypanel');
+  if(el&&el.scrollIntoView){const rm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;el.scrollIntoView({behavior:rm?'auto':'smooth',block:'start'});}
+}
+
+/* ---------- player ---------- */
+function stopPlayer(){
+  if(ui.pl.t)clearInterval(ui.pl.t);
+  ui.pl.on=false;ui.pl.t=null;
+  const b=document.querySelector('[data-act="pl"]');if(b)b.textContent='Start';
+  const s=document.getElementById('stage');if(s)s.classList.remove('live');
+  stopAudio();
+}
+function togglePlayer(btn){
+  const D=DAYS[ui.day-1],M=D.m,items=M.ptype==='v'?D.v:D.p,pl=ui.pl;
+  if(pl.on){stopPlayer();return;}
+  pl.on=true;pl.i=0;btn.textContent='Stop';
+  const st=document.getElementById('stage');if(st)st.classList.add('live');
+  const step=function(){
+    if(pl.i>=items.length*3){stopPlayer();const e=document.getElementById('pl-en');if(e)e.textContent='Round complete. Well done.';return;}
+    const it=items[pl.i%items.length];
+    const a=document.getElementById('pl-es'),b=document.getElementById('pl-en');
+    if(a)a.textContent=it[0];
+    const pr=document.getElementById('pl-pr');if(pr)pr.textContent=pron(it[0]);
+    if(b)b.textContent=it[1]+' · round '+(Math.floor(pl.i/items.length)+1)+' of 3';
+    speak(it[0]);pl.i++;
+  };
+  step();
+  pl.t=setInterval(step,M.ptype==='v'?2200:3800);
+  touch();save();
+}
+
+/* ---------- quiz flow ---------- */
+function startQuiz(d,final){
+  ui.quiz={d:d,qs:final?buildFinal():buildQuiz(d),i:0,score:0,pick:null,typed:'',checked:false,ok:false,fin:false,final:!!final,pass:false};
+  render();toPanel();
+}
+function answer(ok){const Q=ui.quiz;Q.checked=true;Q.ok=ok;if(ok)Q.score++;render();}
+function nextQ(){
+  const Q=ui.quiz;
+  if(Q.i+1<Q.qs.length){Q.i++;Q.pick=null;Q.typed='';Q.checked=false;Q.ok=false;render();return;}
+  const n=Q.qs.length;Q.fin=true;Q.pass=Q.score/n>=0.7;touch();
+  if(Q.pass){
+    if(Q.final){if(!S.final){S.xp+=100;S.final={score:Q.score,date:ymd(Date.now())};}else if(Q.score>S.final.score){S.final.score=Q.score;}}
+    else{
+      const first=!S.done[Q.d];
+      if(first){S.xp+=Q.score*10+50;S.done[Q.d]={score:Q.score,n:n,date:ymd(Date.now())};}
+      else if(Q.score>S.done[Q.d].score){S.done[Q.d].score=Q.score;}
+    }
+  }
+  save();render();
+}
+
+/* ---------- review flow ---------- */
+function startReview(){
+  const now=Date.now();
+  const keys=Object.keys(S.deck).filter(k=>S.deck[k].due<=now).sort((a,b)=>S.deck[a].due-S.deck[b].due).slice(0,20);
+  ui.review={queue:shuffle(keys),rev:false,n:0,done:false};
+  render();
+}
+function rate(r){
+  const R=ui.review,k=R.queue.shift(),c=S.deck[k],now=Date.now();
+  if(r==='again'){c.box=0;c.due=now+10*60000;R.queue.push(k);}
+  else{c.box=Math.min(5,c.box+(r==='easy'?2:1));c.due=now+INTV[c.box]*DAY_MS;S.xp+=2;R.n++;}
+  touch();R.rev=false;if(!R.queue.length)R.done=true;
+  save();render();
+}
+
+/* ---------- events ---------- */
+$app.addEventListener('click',function(e){
+  const t=e.target.closest&&e.target.closest('[data-act]');if(!t)return;
+  const a=t.dataset.act,D=DAYS[ui.day-1];
+  switch(a){
+    case 'view':ui.view=t.dataset.v;if(ui.view==='review')ui.review=null;render();break;
+    case 'go':ui.view='course';ui.day=+t.dataset.d;ui.tab='learn';ui.quiz=null;ui.dict={i:0,res:null,val:''};render();toPanel();break;
+    case 'tab':ui.tab=t.dataset.t;render();break;
+    case 'say':speak(t.dataset.s,t.dataset.r?+t.dataset.r:0);break;
+    case 'learned':
+      D.v.forEach(w=>{const k=D.d+'|'+w[0];if(!S.deck[k])S.deck[k]={d:D.d,es:w[0],en:w[1],box:0,due:Date.now()};});
+      S.learned[D.d]=true;S.xp+=10;touch();save();render();break;
+    case 'step':{const k=D.d+'-'+t.dataset.i;S.steps[k]=!S.steps[k];if(S.steps[k]){S.xp+=2;touch();}save();render();break;}
+    case 'pl':togglePlayer(t);break;
+    case 'dcheck':{
+      const inp=document.getElementById('dict-in'),val=inp?inp.value:'',it=D.p[ui.dict.i%D.p.length];
+      ui.dict.val=val;
+      ui.dict.res=plain(val)===plain(it[0])?'perfect':(norm(val)===norm(it[0])?'accents':'miss');
+      if(ui.dict.res!=='miss')S.xp+=2;
+      touch();save();render();break;}
+    case 'dnext':ui.dict={i:ui.dict.i+1,res:null,val:''};render();break;
+    case 'quiz':startQuiz(D.d,false);break;
+    case 'final':startQuiz(15,true);break;
+    case 'pick':{const q=ui.quiz.qs[ui.quiz.i];ui.quiz.pick=+t.dataset.i;answer(ui.quiz.pick===q.a);break;}
+    case 'tcheck':{const q=ui.quiz.qs[ui.quiz.i],inp=document.getElementById('qin'),val=inp?inp.value:'';ui.quiz.typed=val;answer(sameAns(val,q.ans));break;}
+    case 'next':nextQ();break;
+    case 'nextday':ui.day=Math.min(15,ui.quiz.d+1);ui.tab='learn';ui.quiz=null;render();toPanel();break;
+    case 'qend':ui.quiz=null;render();break;
+    case 'rstart':startReview();break;
+    case 'reveal':ui.review.rev=true;render();break;
+    case 'rate':rate(t.dataset.r);break;
+    case 'rend':ui.review=null;render();break;
+  }
+});
+$app.addEventListener('keydown',function(e){
+  if(e.key!=='Enter')return;
+  const id=e.target&&e.target.id;
+  if(id==='qin'&&ui.quiz&&!ui.quiz.checked){e.preventDefault();const q=ui.quiz.qs[ui.quiz.i];ui.quiz.typed=e.target.value;answer(sameAns(e.target.value,q.ans));}
+  else if(id==='dict-in'&&!ui.dict.res){e.preventDefault();const b=$app.querySelector('[data-act="dcheck"]');if(b)b.click();}
+});
+
+render();
+})();
+</script>
